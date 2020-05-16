@@ -1,0 +1,56 @@
+from django.shortcuts import render, redirect
+
+from .forms import ItemForm
+from .models import Products, Order
+from django.core.paginator import Paginator
+
+
+# Create your views here.
+
+
+def index(request):
+    product_objects = Products.objects.all()
+
+    # search code
+    item_name = request.GET.get('item_name')
+    if item_name != '' and item_name is not None:
+        product_objects = product_objects.filter(title__icontains=item_name)
+
+    # paginator code
+    paginator = Paginator(product_objects, 4)
+    page = request.GET.get('page')
+    product_objects = paginator.get_page(page)
+
+    return render(request, 'shop/index.html', {'product_objects': product_objects})
+
+
+def detail(request, id):
+    product_object = Products.objects.get(id=id)
+    return render(request, 'shop/detail.html', {'product_object': product_object})
+
+
+def checkout(request):
+    if request.method == "POST":
+        items = request.POST.get('items', "")
+        name = request.POST.get('name', "")
+        email = request.POST.get('email', "")
+        address_num = request.POST.get('address-num', "")
+        state = request.POST.get('state', "")
+        city = request.POST.get('city', "")
+        address = request.POST.get('address', "")
+
+        order = Order(items=items, name=name, email=email, address_num=address_num, state=state, city=city,
+                      address=address)
+        order.save()
+
+    return render(request, 'shop/checkout.html')
+
+
+def create_item(request):
+    form = ItemForm(request.POST or None)
+
+    if form.is_valid():
+        form.save()
+        return redirect('/')
+
+    return render(request, 'shop/item-form.html', {'form': form})
